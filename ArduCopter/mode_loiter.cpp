@@ -38,7 +38,12 @@ bool ModeLoiter::init(bool ignore_checks)
     _precision_loiter_active = false;
 #endif
 
-    return true;
+    // fs_ekf_action --> EKF Failsafe ALTHOLD가 아닐 시 Loiter 들어갈 수 없도록.
+    gcs().send_text(g.fs_ekf_action == FS_EKF_ACTION_ALTHOLD ? MAV_SEVERITY_INFO : MAV_SEVERITY_WARNING,
+                    "EKF Failsafe must be ALTHOLD! current = %s",
+                    g.fs_ekf_action == FS_EKF_ACTION_ALTHOLD ? "FS_EKF_ACTION_ALTHOLD" : "Other... must be change!");
+
+    return g.fs_ekf_action == FS_EKF_ACTION_ALTHOLD ? true : false;
 }
 
 #if AC_PRECLAND_ENABLED

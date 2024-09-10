@@ -182,18 +182,35 @@ void Copter::failsafe_ekf_event()
     }
 
     // does this mode require position?
-    if (!copter.flightmode->requires_GPS() && (g.fs_ekf_action != FS_EKF_ACTION_LAND_EVEN_STABILIZE)) {
+    // GPS 모드를 요구하지 않으며
+    // fs_ekf_action이 fs_ekf_action의 값이 FS_EKF_ACTION_LAND_EVEN_STABILIZE이 아닌 경우 종료.
+    if (!copter.flightmode->requires_GPS() && (g.fs_ekf_action != FS_EKF_ACTION_LAND_EVEN_STABILIZE))
+    {
         return;
     }
 
     // take action based on fs_ekf_action parameter
     switch (g.fs_ekf_action) {
         case FS_EKF_ACTION_ALTHOLD:
+            // MARK:  Failsafe AltHold 전환부 수정 案
+            // FIXME: if (failsafe.radio || !set_mode(Mode::Number::ALT_HOLD, ModeReason::EKF_FAILSAFE))
+                //      위의 함수 무력화 + GCS 상황 전달 (INFO 레벨로 전달...)
+                //  TODO: 반드시 return으로 종 결 할 것.......... flag.critical 걸리면 Panic 빠질수도 있음.
+            // (2024/09/09•作)현재는 이 부분을 수정하면 될 것 같기도 하고...
+            // EKF Failsafe 가 뜬다? --> ALT_HOLD 가 아닌 현재 상태 유지...
+            // 즉, 아무것도 하지 않을경우는..? --> 좀 걸려도 EKF 필터 정상화가 될 것으로 추측...
+            //  결론 : 개무서움.
+            // 2024/09/10 문제점 1. EKF 필터 자체적으로 문제가 발생하지는 않을까?...
             // AltHold
-            if (failsafe.radio || !set_mode(Mode::Number::ALT_HOLD, ModeReason::EKF_FAILSAFE)) {
-                set_mode_land_with_pause(ModeReason::EKF_FAILSAFE);
-            }
+            // if (failsafe.radio || !set_mode(Mode::Number::ALT_HOLD, ModeReason::EKF_FAILSAFE))
+            // {
+            //     set_mode_land_with_pause(ModeReason::EKF_FAILSAFE);
+            // }
+            gcs().send_text(MAV_SEVERITY_WARNING, "EKF Failsafe, But pass");
+            return; // flag failsafe 건너뛰기 위함.
             break;
+
+            // 아래의 모드들은 설정하지 않을 모드들... (착륙 전환)
         case FS_EKF_ACTION_LAND:
         case FS_EKF_ACTION_LAND_EVEN_STABILIZE:
         default:
@@ -201,7 +218,9 @@ void Copter::failsafe_ekf_event()
             break;
     }
 
+
     // set true if ekf action is triggered
+    // FIXME: 본 함수 무력화 시 필히 아래 코드는 동작하면 안되지만, 안전을 고려하여 무력화는 하지 말 것.!!
     AP_Notify::flags.failsafe_ekf = true;
     gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF Failsafe: changed to %s Mode", flightmode->name());
 }
