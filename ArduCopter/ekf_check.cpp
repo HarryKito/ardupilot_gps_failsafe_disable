@@ -190,6 +190,7 @@ void Copter::failsafe_ekf_event()
     }
 
     // take action based on fs_ekf_action parameter
+    // FIXME: 비행모드 AUTO 모드인경우 ?...
     switch (g.fs_ekf_action) {
         case FS_EKF_ACTION_ALTHOLD:
             // MARK:  Failsafe AltHold 전환부 수정 案
